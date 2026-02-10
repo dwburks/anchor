@@ -82,9 +82,20 @@ class BackupService {
       throw Exception('File not found');
     }
 
+    // Check file size before reading into memory (50MB limit)
+    final fileSize = await file.length();
+    if (fileSize > 50 * 1024 * 1024) {
+      throw Exception('Backup file too large (max 50MB).');
+    }
+
     // Validate JSON before uploading
     final content = await file.readAsString();
-    final json = jsonDecode(content) as Map<String, dynamic>;
+    final Map<String, dynamic> json;
+    try {
+      json = jsonDecode(content) as Map<String, dynamic>;
+    } catch (e) {
+      throw Exception('Invalid backup file. Could not parse JSON.');
+    }
     if (json['app'] != 'anchor' && json['app'] != 'helmpad') {
       throw Exception('Invalid backup file. Not a Helmpad backup.');
     }

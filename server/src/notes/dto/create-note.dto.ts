@@ -4,15 +4,18 @@ import {
   IsString,
   IsNotEmpty,
   IsArray,
+  MaxLength,
 } from 'class-validator';
 
 export class CreateNoteDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(1000)
   title: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(500000) // ~500KB max note content
   content?: string;
 
   @IsBoolean()

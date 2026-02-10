@@ -6,6 +6,8 @@ import {
   ValidateNested,
   IsDateString,
   IsEnum,
+  MaxLength,
+  ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -24,6 +26,7 @@ export class SyncNoteDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(500000) // ~500KB max note content
   content?: string;
 
   @IsBoolean()
@@ -57,6 +60,7 @@ export class SyncNotesDto {
   lastSyncedAt?: string;
 
   @IsArray()
+  @ArrayMaxSize(500) // Prevent OOM from massive sync payloads
   @ValidateNested({ each: true })
   @Type(() => SyncNoteDto)
   @IsOptional()

@@ -64,12 +64,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _importData() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-    );
+    PlatformFile? pickedFile;
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      if (result == null || result.files.single.path == null) return;
+      pickedFile = result.files.single;
+    } catch (e) {
+      if (mounted) {
+        AppSnackbar.showError(context, message: 'Could not open file picker.');
+      }
+      return;
+    }
 
-    if (result == null || result.files.single.path == null) return;
+    if (pickedFile == null || pickedFile.path == null) return;
 
     if (!mounted) return;
 
@@ -93,7 +103,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       final backupService = ref.read(backupServiceProvider);
       final importResult =
-          await backupService.importData(result.files.single.path!);
+          await backupService.importData(pickedFile.path!);
       if (mounted) {
         AppSnackbar.showSuccess(context, message: importResult.summary);
       }
@@ -487,10 +497,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ],
                           const SizedBox(height: 6),
                           GestureDetector(
-                            onTap: () => launchUrl(
-                              Uri.parse('https://github.com/dwburks/anchor'),
-                              mode: LaunchMode.externalApplication,
-                            ),
+                            onTap: () async {
+                              try {
+                                await launchUrl(
+                                  Uri.parse('https://github.com/dwburks/anchor'),
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              } catch (_) {
+                                // Silently ignore if URL can't be opened
+                              }
+                            },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [

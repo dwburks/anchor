@@ -90,7 +90,13 @@ export class BackupService {
     skipped: { notes: number; tags: number };
   }> {
     // Validate structure
-    if (!data || data.app !== 'anchor' || !data.version) {
+    if (!data || typeof data !== 'object') {
+      throw new BadRequestException(
+        'Invalid backup file: expected a JSON object.',
+      );
+    }
+
+    if (data.app !== 'anchor' || !data.version) {
       throw new BadRequestException(
         'Invalid backup file. Expected an Anchor backup JSON.',
       );
@@ -100,6 +106,34 @@ export class BackupService {
       throw new BadRequestException(
         'Invalid backup format: missing notes or tags array.',
       );
+    }
+
+    // Enforce size limits to prevent OOM
+    if (data.notes.length > 10000) {
+      throw new BadRequestException(
+        'Backup too large: max 10,000 notes per import.',
+      );
+    }
+    if (data.tags.length > 1000) {
+      throw new BadRequestException(
+        'Backup too large: max 1,000 tags per import.',
+      );
+    }
+
+    // Validate that notes and tags have required fields
+    for (const note of data.notes) {
+      if (!note || typeof note !== 'object' || !note.id || !note.title) {
+        throw new BadRequestException(
+          'Invalid backup: each note must have an id and title.',
+        );
+      }
+    }
+    for (const tag of data.tags) {
+      if (!tag || typeof tag !== 'object' || !tag.id || !tag.name) {
+        throw new BadRequestException(
+          'Invalid backup: each tag must have an id and name.',
+        );
+      }
     }
 
     const result = {
