@@ -2,81 +2,85 @@
 
 # Helmpad
 
-**A self-hosted, offline-first note taking app — helm your thoughts.**
+**A self-hosted, offline-first note taking app.**
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker)](https://github.com/dwburks/anchor)
 
-Helmpad is a fork of [Anchor](https://github.com/zhfahim/anchor) focused on iOS availability and reliability improvements. Notes are stored locally, editable offline, and synced across devices when online.
-
 </div>
 
+## About
 
-## What's Different From Anchor?
+Helmpad is a fork of [Anchor](https://github.com/zhfahim/anchor) — a self-hosted note taking app with offline-first sync. Your notes live on your own server, are editable without an internet connection, and sync automatically across devices when online.
 
-- **iOS App** — Available on the App Store (coming soon)
-- **Backup & Restore** — Export/import your notes and tags as JSON from the mobile app or API
-- **Sync Fixes** — Resolved UTC timestamp issues causing mobile-to-web sync failures
-- **Foreground Sync** — Periodic sync while the app is in use
-- **Debug Logging** — Gated behind `SYNC_DEBUG` environment variable
+This fork adds iOS support, backup/restore, brute force protection, and various sync reliability fixes.
 
+## Quick Start
 
-## Features
+```yaml
+# docker-compose.yml
+services:
+  helmpad:
+    image: ghcr.io/dwburks/anchor:latest
+    container_name: helmpad
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - helmpad_data:/data
 
-- **Rich Text Editor** — Bold, italic, underline, headings, lists, checkboxes
-- **Note Sharing** — Share notes with other users (viewer or editor)
-- **Tags** — Organize notes with custom tags and colors
-- **Note Backgrounds** — Customize with solid colors and patterns
-- **Pin & Archive** — Pin important notes, archive for later
-- **Search** — Search locally by title or content
-- **Trash** — Soft delete with recovery
-- **Offline-First** — All edits work offline with local storage
-- **Automatic Sync** — Changes sync across devices when online
-- **Backup & Restore** — Export/import notes as JSON
-- **Admin Panel** — User management, registration control, system stats
+volumes:
+  helmpad_data:
+```
 
+```bash
+docker compose up -d
+# Open http://localhost:3000
+# First registered user becomes admin
+```
 
-## Self-Hosting With Docker
+## Environment Variables
 
-### Using Pre-built Image (Recommended)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JWT_SECRET` | auto-generated | Auth token signing secret (persisted in `/data`) |
+| `PG_HOST` | _(empty)_ | External Postgres host. Leave empty for embedded database |
+| `PG_PORT` | `5432` | Postgres port |
+| `PG_USER` | `anchor` | Postgres username |
+| `PG_PASSWORD` | `password` | Postgres password |
+| `PG_DATABASE` | `anchor` | Database name |
+| `USER_SIGNUP` | _(not set)_ | `disabled`, `enabled`, or `review`. If unset, admins control via admin panel |
+| `SYNC_DEBUG` | _(not set)_ | Set to `true` to enable verbose sync logging |
 
-1. **Create a `docker-compose.yml` file:**
-   ```yaml
-   services:
-     helmpad:
-       image: ghcr.io/dwburks/anchor:latest
-       container_name: helmpad
-       restart: unless-stopped
-       ports:
-         - "3000:3000"
-       volumes:
-         - helmpad_data:/data
+## Security
 
-   volumes:
-     helmpad_data:
-   ```
+Helmpad is designed for multi-user self-hosting with strong data isolation:
 
-2. **(Optional) Configure environment:**
+- **Note isolation** — All data access is scoped by authenticated user. Users cannot read, modify, or delete another user's notes, tags, or shares through any API endpoint. Verified through full codebase security audit.
+- **Rate limiting** — Global request throttling (60 req/min) with stricter limits on auth endpoints (login: 10/min, register: 5/min).
+- **Brute force protection** — Accounts auto-lock for 15 minutes after 5 failed login attempts. No admin intervention required.
+- **Password security** — Bcrypt hashing with 10 salt rounds. Passwords never included in API responses or JWT tokens.
+- **Share permissions** — Notes can be shared as viewer or editor. Permission checks enforced at the service layer, not just the API layer.
+- **Input validation** — All endpoints validate and sanitize input. Extra properties are rejected.
+- **Security headers** — Helmet.js applied globally.
 
-   | Variable | Default | Description |
-   |----------|---------|-------------|
-   | `JWT_SECRET` | (auto-generated) | Auth token secret (persisted in `/data`) |
-   | `PG_HOST` | (empty) | External Postgres host (leave empty for embedded) |
-   | `PG_PORT` | `5432` | Postgres port |
-   | `PG_USER` | `anchor` | Postgres username |
-   | `PG_PASSWORD` | `password` | Postgres password |
-   | `PG_DATABASE` | `anchor` | Database name |
-   | `USER_SIGNUP` | (not set) | `disabled`, `enabled`, or `review`. If not set, admins control it via admin panel |
+## Mobile App
 
-3. **Start the container:**
-   ```bash
-   docker compose up -d
-   ```
+**iOS** — Build from source with Flutter, or sideload via [Sideloadly](https://sideloadly.io). App Store release coming soon.
 
-4. **Access the app:**
-   Open http://localhost:3000
+**Android** — Build from source, or download APKs from upstream [Anchor releases](https://github.com/zhfahim/anchor/releases).
 
-### Building From Source
+## Backup & Restore
+
+Export and import your data from the mobile app (Settings → Data) or via API:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/backup/export` | Download your notes and tags as JSON |
+| `POST` | `/api/backup/import` | Import JSON backup (skips existing items) |
+| `GET` | `/api/admin/backup` | Admin-only full database dump (SQL) |
+
+## Building From Source
 
 ```bash
 git clone https://github.com/dwburks/anchor.git
@@ -84,38 +88,21 @@ cd anchor
 docker compose up -d
 ```
 
+## Roadmap
 
-## Mobile App
-
-### iOS
-
-Coming soon to the App Store.
-
-### Android
-
-Build from source using Flutter, or download APKs from the upstream [Anchor releases](https://github.com/zhfahim/anchor/releases).
-
-
-## Backup API
-
-Authenticated users can export and import their data:
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/backup/export` | Download your notes and tags as JSON |
-| `POST` | `/api/backup/import` | Upload JSON backup (non-destructive, skips existing items) |
-| `GET` | `/api/admin/backup` | Admin-only: full database dump (SQL) |
-
+- [ ] App Store release with custom icon
+- [ ] Family sharing — shared spaces for household members
+- [ ] CORS origin whitelist configuration
+- [ ] Audit logging for admin actions
 
 ## Tech Stack
 
-- **Backend**: Nest.js, PostgreSQL, Prisma
-- **Mobile**: Flutter (iOS & Android)
-- **Web**: Next.js, TypeScript
-
+| Layer | Technology |
+|-------|-----------|
+| Backend | NestJS, PostgreSQL, Prisma |
+| Web | Next.js, TypeScript |
+| Mobile | Flutter (iOS & Android) |
 
 ## License
 
-This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
-
-Helmpad is a fork of [Anchor](https://github.com/zhfahim/anchor) by [@zhfahim](https://github.com/zhfahim).
+[AGPL-3.0](LICENSE) — Helmpad is a fork of [Anchor](https://github.com/zhfahim/anchor) by [@zhfahim](https://github.com/zhfahim).
