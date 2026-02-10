@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/router/app_routes.dart';
@@ -484,6 +485,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ],
                             ),
                           ],
+                          const SizedBox(height: 6),
+                          GestureDetector(
+                            onTap: () => launchUrl(
+                              Uri.parse('https://github.com/dwburks/anchor'),
+                              mode: LaunchMode.externalApplication,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  LucideIcons.github,
+                                  size: 12,
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.4),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Source Code (AGPL-3.0)',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.primary
+                                        .withValues(alpha: 0.7),
+                                    fontFamily: 'monospace',
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: theme.colorScheme.primary
+                                        .withValues(alpha: 0.4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
