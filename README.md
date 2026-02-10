@@ -1,6 +1,6 @@
 <div align="center">
 
-# Helmpad
+# Anchor
 
 **A self-hosted, offline-first note taking app.**
 
@@ -11,26 +11,34 @@
 
 ## About
 
-Helmpad is a fork of [Anchor](https://github.com/zhfahim/anchor) — a self-hosted note taking app with offline-first sync. Your notes live on your own server, are editable without an internet connection, and sync automatically across devices when online.
+This is a fork of [Anchor](https://github.com/zhfahim/anchor) — a self-hosted note taking app with offline-first sync. Your notes live on your own server, are editable without an internet connection, and sync automatically across devices when online.
 
-This fork adds iOS support, backup/restore, brute force protection, and various sync reliability fixes.
+The web and server components remain **Anchor**. The mobile app is published separately as **Helmpad**.
+
+### What's in this fork
+
+- **Helmpad mobile app** — iOS companion app (Flutter), available via Sideloadly or the App Store (coming soon)
+- **Backup & Restore** — Export/import notes and tags as JSON from the mobile app or API
+- **Brute force protection** — Rate limiting and auto-lockout on auth endpoints
+- **Sync fixes** — Resolved UTC timestamp issues causing mobile-to-web sync failures
+- **Foreground sync** — Periodic sync while the mobile app is in use
 
 ## Quick Start
 
 ```yaml
 # docker-compose.yml
 services:
-  helmpad:
+  anchor:
     image: ghcr.io/dwburks/anchor:latest
-    container_name: helmpad
+    container_name: anchor
     restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
-      - helmpad_data:/data
+      - anchor_data:/data
 
 volumes:
-  helmpad_data:
+  anchor_data:
 ```
 
 ```bash
@@ -54,17 +62,19 @@ docker compose up -d
 
 ## Security
 
-Helmpad is designed for multi-user self-hosting with strong data isolation:
+Designed for multi-user self-hosting with strong data isolation:
 
-- **Note isolation** — All data access is scoped by authenticated user. Users cannot read, modify, or delete another user's notes, tags, or shares through any API endpoint. Verified through full codebase security audit.
+- **Note isolation** — All data access is scoped by authenticated user. Users cannot read, modify, or delete another user's notes, tags, or shares through any API endpoint.
 - **Rate limiting** — Global request throttling (60 req/min) with stricter limits on auth endpoints (login: 10/min, register: 5/min).
 - **Brute force protection** — Accounts auto-lock for 15 minutes after 5 failed login attempts. No admin intervention required.
 - **Password security** — Bcrypt hashing with 10 salt rounds. Passwords never included in API responses or JWT tokens.
-- **Share permissions** — Notes can be shared as viewer or editor. Permission checks enforced at the service layer, not just the API layer.
+- **Share permissions** — Notes can be shared as viewer or editor. Permission checks enforced at the service layer.
 - **Input validation** — All endpoints validate and sanitize input. Extra properties are rejected.
 - **Security headers** — Helmet.js applied globally.
 
-## Mobile App
+## Mobile App (Helmpad)
+
+The mobile companion app is called **Helmpad** and lives in the `mobile/` directory.
 
 **iOS** — Build from source with Flutter, or sideload via [Sideloadly](https://sideloadly.io). App Store release coming soon.
 
@@ -72,7 +82,7 @@ Helmpad is designed for multi-user self-hosting with strong data isolation:
 
 ## Backup & Restore
 
-Export and import your data from the mobile app (Settings → Data) or via API:
+Export and import your data from Helmpad (Settings → Data) or via API:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -90,7 +100,7 @@ docker compose up -d
 
 ## Roadmap
 
-- [ ] App Store release with custom icon
+- [ ] Helmpad App Store release with custom icon
 - [ ] Family sharing — shared spaces for household members
 - [ ] CORS origin whitelist configuration
 - [ ] Audit logging for admin actions
@@ -101,8 +111,8 @@ docker compose up -d
 |-------|-----------|
 | Backend | NestJS, PostgreSQL, Prisma |
 | Web | Next.js, TypeScript |
-| Mobile | Flutter (iOS & Android) |
+| Mobile (Helmpad) | Flutter (iOS & Android) |
 
 ## License
 
-[AGPL-3.0](LICENSE) — Helmpad is a fork of [Anchor](https://github.com/zhfahim/anchor) by [@zhfahim](https://github.com/zhfahim).
+[AGPL-3.0](LICENSE) — Fork of [Anchor](https://github.com/zhfahim/anchor) by [@zhfahim](https://github.com/zhfahim).
