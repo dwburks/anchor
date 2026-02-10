@@ -54,6 +54,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  void _showSwitchServerDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => ConfirmDialog(
+        icon: LucideIcons.serverCog,
+        title: 'Switch Server',
+        message:
+            'You will be logged out and redirected to the server configuration screen.',
+        cancelText: 'Cancel',
+        confirmText: 'Switch',
+        onConfirm: () async {
+          await ref.read(authControllerProvider.notifier).logout();
+          await ref.read(serverConfigProvider.notifier).clearServerUrl();
+          // Router redirect will send to server config screen
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -212,6 +231,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             onTap: () => context.push(
                               '/${AppRoutes.settings}/${AppRoutes.changePassword}',
                             ),
+                          ),
+                          _buildDivider(context),
+                          _buildActionItem(
+                            context,
+                            title: 'Switch Server',
+                            subtitle: 'Connect to a different Anchor server',
+                            icon: LucideIcons.serverCog,
+                            onTap: _showSwitchServerDialog,
                           ),
                           _buildDivider(context),
                           _buildActionItem(

@@ -212,12 +212,12 @@ return $default(_that.id,_that.email,_that.name,_that.profileImage);case _:
 @JsonSerializable()
 
 class _User implements User {
-  const _User({required this.id, required this.email, required this.name, this.profileImage});
+  const _User({this.id = '', this.email = '', this.name = '', this.profileImage});
   factory _User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 
-@override final  String id;
-@override final  String email;
-@override final  String name;
+@override@JsonKey() final  String id;
+@override@JsonKey() final  String email;
+@override@JsonKey() final  String name;
 @override final  String? profileImage;
 
 /// Create a copy of User

@@ -83,6 +83,7 @@ export default function NotesPage() {
   const { data: notes = [], isLoading: notesLoading } = useQuery({
     queryKey: ["notes", tagIdParam],
     queryFn: () => getNotes({ tagId: tagIdParam || undefined }),
+    refetchInterval: 5000, // Poll every 5 seconds for changes from mobile/other clients
   });
 
   const { data: tags = [] } = useQuery({

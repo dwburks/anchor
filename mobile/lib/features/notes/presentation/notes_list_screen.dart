@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -22,12 +24,16 @@ class NotesListScreen extends ConsumerStatefulWidget {
   ConsumerState<NotesListScreen> createState() => _NotesListScreenState();
 }
 
-class _NotesListScreenState extends ConsumerState<NotesListScreen> {
+class _NotesListScreenState extends ConsumerState<NotesListScreen>
+    with WidgetsBindingObserver {
   final _searchController = TextEditingController();
+  Timer? _syncTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startSyncTimer();
     // Sync controller with provider state if it exists
     final currentQuery = ref.read(searchQueryProvider);
     if (currentQuery.isNotEmpty) {
@@ -37,8 +43,28 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
 
   @override
   void dispose() {
+    _syncTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Sync immediately when returning to foreground, then restart timer
+      _onRefresh();
+      _startSyncTimer();
+    } else if (state == AppLifecycleState.paused) {
+      _syncTimer?.cancel();
+    }
+  }
+
+  void _startSyncTimer() {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _onRefresh();
+    });
   }
 
   void _exitSelectionMode() {
@@ -106,6 +132,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       },
       child: Scaffold(
         drawer: const AppDrawer(),
+        bottomNavigationBar: _SyncDebugBar(),
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -251,16 +278,78 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                             ref.read(searchQueryProvider.notifier).set(value);
                           },
                         ),
-                        // Tag filter indicator
-                        if (selectedTag != null) ...[
+                        // Tag chips for quick filtering
+                        if (tagsAsync.hasValue &&
+                            tagsAsync.value != null &&
+                            tagsAsync.value!.isNotEmpty) ...[
                           const SizedBox(height: 12),
-                          _TagFilterChip(
-                            tag: selectedTag,
-                            onClear: () {
-                              ref
-                                  .read(selectedTagFilterProvider.notifier)
-                                  .clear();
-                            },
+                          SizedBox(
+                            height: 36,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: tagsAsync.value!.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 8),
+                              itemBuilder: (context, index) {
+                                final tag = tagsAsync.value![index];
+                                final isSelected = selectedTagId == tag.id;
+                                final tagColor = parseTagColor(
+                                  tag.color,
+                                  fallback: theme.colorScheme.primary,
+                                );
+                                return FilterChip(
+                                  selected: isSelected,
+                                  label: Text(tag.name),
+                                  avatar: Icon(
+                                    LucideIcons.hash,
+                                    size: 14,
+                                    color: isSelected
+                                        ? tagColor
+                                        : tagColor.withValues(alpha: 0.7),
+                                  ),
+                                  labelStyle: TextStyle(
+                                    fontSize: 13,
+                                    color: isSelected
+                                        ? tagColor
+                                        : theme.colorScheme.onSurface
+                                            .withValues(alpha: 0.7),
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                  ),
+                                  selectedColor:
+                                      tagColor.withValues(alpha: 0.15),
+                                  backgroundColor: theme
+                                      .colorScheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.5),
+                                  side: BorderSide(
+                                    color: isSelected
+                                        ? tagColor.withValues(alpha: 0.3)
+                                        : Colors.transparent,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  showCheckmark: false,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                  onSelected: (_) {
+                                    if (isSelected) {
+                                      ref
+                                          .read(selectedTagFilterProvider
+                                              .notifier)
+                                          .clear();
+                                    } else {
+                                      ref
+                                          .read(selectedTagFilterProvider
+                                              .notifier)
+                                          .select(tag.id);
+                                    }
+                                  },
+                                );
+                              },
+                            ),
                           ),
                         ],
                       ],
@@ -498,6 +587,80 @@ class _SyncIndicatorState extends State<_SyncIndicator>
         LucideIcons.refreshCw,
         size: 20,
         color: widget.theme.colorScheme.onSurface,
+      ),
+    );
+  }
+}
+
+class _SyncDebugBar extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final syncDebug = ref.watch(syncDebugInfoProvider);
+    final isSyncing = ref.watch(syncingStateProvider);
+    final theme = Theme.of(context);
+
+    String statusText;
+    Color statusColor;
+
+    if (isSyncing) {
+      statusText = 'Syncing...';
+      statusColor = theme.colorScheme.primary;
+    } else if (syncDebug.lastError != null) {
+      statusText = 'ERR: ${syncDebug.lastError!.length > 50 ? '${syncDebug.lastError!.substring(0, 50)}...' : syncDebug.lastError}';
+      statusColor = theme.colorScheme.error;
+    } else if (syncDebug.lastSuccessAt != null) {
+      final ago = DateTime.now().difference(syncDebug.lastSuccessAt!);
+      final agoText = ago.inSeconds < 60
+          ? '${ago.inSeconds}s ago'
+          : ago.inMinutes < 60
+              ? '${ago.inMinutes}m ago'
+              : '${ago.inHours}h ago';
+      final serverWinsStr = syncDebug.lastServerWins > 0 ? ' ✗${syncDebug.lastServerWins}' : '';
+      statusText = '$agoText (↑${syncDebug.lastPushed}$serverWinsStr)';
+      statusColor = syncDebug.lastServerWins > 0 ? Colors.orange : Colors.green;
+    } else {
+      statusText = 'Not synced yet';
+      statusColor = theme.colorScheme.onSurface.withValues(alpha: 0.4);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Icon(
+              isSyncing
+                  ? LucideIcons.refreshCw
+                  : syncDebug.lastError != null
+                      ? LucideIcons.alertCircle
+                      : LucideIcons.checkCircle2,
+              size: 12,
+              color: statusColor,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                statusText,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: statusColor,
+                  fontFamily: 'monospace',
+                  fontSize: 10,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text(
+              '↑${syncDebug.totalPushed} ↓${syncDebug.totalPulled} ✗${syncDebug.totalServerWins} #${syncDebug.successCount}',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                fontFamily: 'monospace',
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -43,15 +43,15 @@ class AuthRepository {
 
   Future<User> login(String email, String password) async {
     final data = await _authService.login(email, password);
-    final token = data['access_token'] as String;
-    final refreshToken = data['refresh_token'] as String;
-    final userJson = data['user'] as Map<String, dynamic>;
+    final token = data['access_token']?.toString() ?? '';
+    final refreshToken = data['refresh_token']?.toString() ?? '';
+    final userJson = data['user'] as Map<String, dynamic>? ?? {};
     final user = User.fromJson(userJson);
 
     await _storage.write(key: 'access_token', value: token);
     await _storage.write(key: 'refresh_token', value: refreshToken);
-    await _storage.write(key: 'user_id', value: userJson['id']);
-    await _storage.write(key: 'user_email', value: userJson['email']);
+    await _storage.write(key: 'user_id', value: userJson['id']?.toString() ?? '');
+    await _storage.write(key: 'user_email', value: userJson['email']?.toString() ?? '');
     await _saveUser(user);
     return user;
   }

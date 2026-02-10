@@ -1,8 +1,11 @@
 import 'package:anchor/core/router/app_routes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:anchor/core/network/dio_provider.dart';
 import 'package:anchor/core/network/server_config_provider.dart';
 import 'package:anchor/core/widgets/app_snackbar.dart';
 import 'auth_controller.dart';
@@ -19,6 +22,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
+  bool _registrationEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRegistrationMode();
+  }
+
+  Future<void> _checkRegistrationMode() async {
+    try {
+      final dio = ref.read(dioProvider);
+      final response = await dio.get('/api/auth/registration-mode');
+      final mode = response.data['mode'] as String?;
+      if (mounted) {
+        setState(() {
+          _registrationEnabled = mode != 'disabled';
+        });
+      }
+    } catch (_) {
+      // If check fails, keep the button visible
+    }
+  }
 
   @override
   void dispose() {
@@ -43,6 +68,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen(authControllerProvider, (previous, next) {
       if (next.hasError) {
         AppSnackbar.showError(context, message: next.error.toString());
+      }
+      if (next.hasValue && next.value != null) {
+        TextInput.finishAutofillContext();
       }
       // Navigation is handled by the router redirect logic
     });
@@ -163,11 +191,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         )
                       : const Text('Sign In'),
                 ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => context.push(AppRoutes.register),
-                  child: const Text('Create an account'),
-                ),
+                if (_registrationEnabled) ...[
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () => context.push(AppRoutes.register),
+                    child: const Text('Create an account'),
+                  ),
+                ],
+                const SizedBox(height: 32),
+                const _AppVersionLabel(),
               ],
             ),
           ),
@@ -238,6 +270,29 @@ class _ServerUrlChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AppVersionLabel extends StatelessWidget {
+  const _AppVersionLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final info = snapshot.data!;
+        return Text(
+          'v${info.version} (${info.buildNumber})',
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+          ),
+          textAlign: TextAlign.center,
+        );
+      },
     );
   }
 }

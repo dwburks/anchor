@@ -14,6 +14,7 @@ Stream<List<ConnectivityResult>> connectivityStream(Ref ref) {
 @riverpod
 class SyncManager extends _$SyncManager {
   bool _wasOffline = false;
+  Timer? _periodicSyncTimer;
 
   @override
   bool build() {
@@ -38,6 +39,17 @@ class SyncManager extends _$SyncManager {
     // Check initial connectivity state
     _checkInitialState();
 
+    // Start periodic sync every 30 seconds
+    _periodicSyncTimer?.cancel();
+    _periodicSyncTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _triggerSync(),
+    );
+
+    ref.onDispose(() {
+      _periodicSyncTimer?.cancel();
+    });
+
     return false; // isSyncing
   }
 
@@ -57,10 +69,10 @@ class SyncManager extends _$SyncManager {
     try {
       // Sync tags FIRST to ensure tag IDs are resolved before notes sync
       await ref.read(tagsRepositoryProvider).sync();
-      // Then sync notes
+      // Then sync notes (returns push/pull counts, but we don't need them here)
       await ref.read(notesRepositoryProvider).sync();
     } catch (e) {
-      // Sync failed, will retry on next connectivity change
+      // Sync failed, will retry on next periodic tick or connectivity change
     } finally {
       state = false;
     }

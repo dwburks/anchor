@@ -66,6 +66,59 @@ abstract class _$SyncingState extends $Notifier<bool> {
   }
 }
 
+@ProviderFor(SyncDebugInfo)
+const syncDebugInfoProvider = SyncDebugInfoProvider._();
+
+final class SyncDebugInfoProvider
+    extends $NotifierProvider<SyncDebugInfo, SyncDebugData> {
+  const SyncDebugInfoProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'syncDebugInfoProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$syncDebugInfoHash();
+
+  @$internal
+  @override
+  SyncDebugInfo create() => SyncDebugInfo();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SyncDebugData value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SyncDebugData>(value),
+    );
+  }
+}
+
+String _$syncDebugInfoHash() => r'370aa8e8e54a2f5682bfdfd69cca48dcec23bc31';
+
+abstract class _$SyncDebugInfo extends $Notifier<SyncDebugData> {
+  SyncDebugData build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<SyncDebugData, SyncDebugData>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<SyncDebugData, SyncDebugData>,
+              SyncDebugData,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
 @ProviderFor(NotesController)
 const notesControllerProvider = NotesControllerProvider._();
 
@@ -90,7 +143,7 @@ final class NotesControllerProvider
   NotesController create() => NotesController();
 }
 
-String _$notesControllerHash() => r'e0e017df3fbd90aeb7068da1bf2f59c0baf35df0';
+String _$notesControllerHash() => r'5c2b54c087ff1f9602c3d7ed9d486e1a3f677b28';
 
 abstract class _$NotesController extends $StreamNotifier<List<Note>> {
   Stream<List<Note>> build();

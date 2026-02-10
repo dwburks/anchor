@@ -92,6 +92,11 @@ export class NotesService {
       orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
     });
 
+    console.log(`[GET /api/notes] User=${userId} returning ${notes.length} notes`);
+    for (const note of notes) {
+      console.log(`[GET /api/notes]   id=${note.id} title="${note.title}" contentLen=${note.content?.length ?? 0} updatedAt=${note.updatedAt.toISOString()}`);
+    }
+
     return notes.map((note) => transformNote(note, userId));
   }
 
@@ -311,8 +316,12 @@ export class NotesService {
     const processedIds: string[] = [];
     const conflicts: { noteId: string; resolution: 'server' | 'client' }[] = [];
 
+    console.log(`[SYNC] User=${userId} lastSyncedAt=${lastSyncedAt} changes=${changes?.length ?? 0}`);
+
     // Process incoming changes from client
     for (const change of changes || []) {
+      console.log(`[SYNC] Processing change: id=${change.id} title="${change.title}" contentLen=${change.content?.length ?? 0} updatedAt=${change.updatedAt}`);
+
       const existingNote = await this.prisma.note.findUnique({
         where: { id: change.id },
       });
@@ -320,6 +329,7 @@ export class NotesService {
       if (!existingNote) {
         // Note doesn't exist on server - create it (only if user is owner)
         // For shared notes, they should already exist on server
+        console.log(`[SYNC] Note ${change.id} not found on server - creating new`);
         await this.prisma.note.create({
           data: {
             id: change.id,
@@ -346,14 +356,19 @@ export class NotesService {
           NoteSharePermission.editor,
         );
 
+        console.log(`[SYNC] Note ${change.id} exists. Access: hasAccess=${access.hasAccess} isOwner=${access.isOwner}`);
+
         if (!access.hasAccess) {
           // No access or viewer trying to edit - skip
+          console.log(`[SYNC] SKIPPED: No access for note ${change.id}`);
           continue;
         }
 
         // Note exists and user has edit access - compare timestamps for conflict resolution
         const clientUpdatedAt = new Date(change.updatedAt);
         const serverUpdatedAt = existingNote.updatedAt;
+
+        console.log(`[SYNC] Timestamp comparison: client=${clientUpdatedAt.toISOString()} server=${serverUpdatedAt.toISOString()} clientNewer=${clientUpdatedAt > serverUpdatedAt}`);
 
         if (clientUpdatedAt > serverUpdatedAt) {
           // Client wins - update server
@@ -379,12 +394,15 @@ export class NotesService {
             };
           }
 
-          await this.prisma.note.update({
+          console.log(`[SYNC] UPDATING note ${change.id}: title="${updateData.title}" contentLen=${updateData.content?.length ?? 0}`);
+          const updatedNote = await this.prisma.note.update({
             where: { id: change.id },
             data: updateData,
           });
+          console.log(`[SYNC] UPDATE RESULT: id=${updatedNote.id} title="${updatedNote.title}" contentLen=${updatedNote.content?.length ?? 0} updatedAt=${updatedNote.updatedAt.toISOString()}`);
           conflicts.push({ noteId: change.id, resolution: 'client' });
         } else {
+          console.log(`[SYNC] SERVER WINS for note ${change.id} - client change discarded`);
           conflicts.push({ noteId: change.id, resolution: 'server' });
         }
         processedIds.push(change.id);

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -196,7 +197,7 @@ class _NoteEditScreenState extends ConsumerState<NoteEditScreen>
 
   void _resetAutoSaveTimer() {
     _autoSaveTimer?.cancel();
-    _autoSaveTimer = Timer(const Duration(seconds: 2), () {
+    _autoSaveTimer = Timer(const Duration(milliseconds: 500), () {
       _autoSave();
     });
   }
@@ -375,6 +376,7 @@ class _NoteEditScreenState extends ConsumerState<NoteEditScreen>
   Future<void> _saveNote() async {
     // Don't save if note is trashed or user can't edit
     if (_existingNote?.isTrashed == true || !(_existingNote?.canEdit ?? true)) {
+      debugPrint('[SAVE] Skipped: trashed or read-only');
       return;
     }
 
@@ -387,6 +389,7 @@ class _NoteEditScreenState extends ConsumerState<NoteEditScreen>
         plainText.isEmpty &&
         _selectedBackground == null &&
         !_isPinned) {
+      debugPrint('[SAVE] Skipped: everything empty');
       return;
     }
 
@@ -403,6 +406,7 @@ class _NoteEditScreenState extends ConsumerState<NoteEditScreen>
         updatedAt: DateTime.now(),
         isSynced: false,
       );
+      debugPrint('[SAVE] Creating new note: ${newNote.id}');
       await repository.createNote(newNote);
       if (mounted) {
         setState(() {
@@ -416,13 +420,18 @@ class _NoteEditScreenState extends ConsumerState<NoteEditScreen>
 
       // Check if anything changed
       final tagsChanged = !_listEquals(_existingNote!.tagIds, _selectedTagIds);
-      if (_existingNote!.title == actualTitle &&
-          _existingNote!.content == content &&
-          _existingNote!.isPinned == _isPinned &&
-          _existingNote!.background == _selectedBackground &&
-          !tagsChanged) {
+      final contentChanged = _existingNote!.content != content;
+      final titleChanged = _existingNote!.title != actualTitle;
+      final pinChanged = _existingNote!.isPinned != _isPinned;
+      final bgChanged = _existingNote!.background != _selectedBackground;
+
+      if (!titleChanged && !contentChanged && !pinChanged && !bgChanged && !tagsChanged) {
+        debugPrint('[SAVE] Skipped: no changes detected');
         return;
       }
+
+      debugPrint('[SAVE] Saving note ${_existingNote!.id} - title:$titleChanged content:$contentChanged pin:$pinChanged bg:$bgChanged tags:$tagsChanged');
+      debugPrint('[SAVE] Content length: existing=${_existingNote!.content?.length ?? 0} current=${content.length}');
 
       final updatedNote = _existingNote!.copyWith(
         title: actualTitle,
@@ -435,6 +444,7 @@ class _NoteEditScreenState extends ConsumerState<NoteEditScreen>
         isSynced: false,
       );
       await repository.updateNote(updatedNote);
+      debugPrint('[SAVE] updateNote completed, isSynced=false written to DB');
       if (mounted) {
         setState(() {
           _existingNote = updatedNote;

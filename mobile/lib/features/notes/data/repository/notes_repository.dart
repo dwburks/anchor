@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:drift/drift.dart' as drift;
@@ -208,8 +209,8 @@ class NotesRepository {
         );
     await _tagsRepo.setTagsForNote(note.id, note.tagIds);
 
-    // Trigger sync in background
-    sync();
+    // Sync immediately
+    await sync();
   }
 
   Future<void> updateNote(domain.Note note) async {
@@ -220,8 +221,8 @@ class NotesRepository {
         .replace(_mapToData(noteWithTimestamp, isSynced: false));
     await _tagsRepo.setTagsForNote(note.id, note.tagIds);
 
-    // Trigger sync in background
-    sync();
+    // Sync immediately
+    await sync();
   }
 
   // Soft delete - moves note to trash
@@ -236,7 +237,7 @@ class NotesRepository {
       ),
     );
 
-    sync();
+    await sync();
   }
 
   // Restore from trash
@@ -251,7 +252,7 @@ class NotesRepository {
       ),
     );
 
-    sync();
+    await sync();
   }
 
   // Archive a note
@@ -266,7 +267,7 @@ class NotesRepository {
       ),
     );
 
-    sync();
+    await sync();
   }
 
   // Unarchive a note
@@ -281,7 +282,7 @@ class NotesRepository {
       ),
     );
 
-    sync();
+    await sync();
   }
 
   // Bulk delete notes
@@ -297,7 +298,7 @@ class NotesRepository {
       ),
     );
 
-    sync();
+    await sync();
     return ids.length;
   }
 
@@ -314,7 +315,7 @@ class NotesRepository {
       ),
     );
 
-    sync();
+    await sync();
     return ids.length;
   }
 
@@ -335,14 +336,16 @@ class NotesRepository {
       _db.noteTags,
     )..where((tbl) => tbl.noteId.equals(id))).go();
 
-    sync();
+    await sync();
   }
 
   // Bi-directional sync with server
-  Future<void> sync() async {
+  // Returns a record of (pushed, pulled, serverWins) counts for debug tracking
+  Future<({int pushed, int pulled, int serverWins})> sync() async {
     try {
       // 1. Get last sync timestamp
       final lastSyncedAt = await _storage.read(key: _lastSyncKey);
+      debugPrint('[SYNC] Starting sync. lastSyncedAt=$lastSyncedAt');
 
       // 2. Get all unsynced local notes (including tombstones)
       final unsyncedRows = await (_db.select(
@@ -362,8 +365,13 @@ class NotesRepository {
           'background': note.background,
           'state': note.state.name,
           'tagIds': note.tagIds,
-          'updatedAt': note.updatedAt?.toIso8601String(),
+          'updatedAt': note.updatedAt?.toUtc().toIso8601String(),
         });
+      }
+
+      debugPrint('[SYNC] Pushing ${localChanges.length} unsynced changes');
+      for (final c in localChanges) {
+        debugPrint('[SYNC]   - ${c['title']} (state=${c['state']}, id=${c['id']})');
       }
 
       // 3. Send sync request to server
@@ -371,6 +379,7 @@ class NotesRepository {
         '/api/notes/sync',
         data: {'lastSyncedAt': lastSyncedAt, 'changes': localChanges},
       );
+      debugPrint('[SYNC] Server response status: ${response.statusCode}');
 
       final data = response.data as Map<String, dynamic>;
       final serverChanges = (data['serverChanges'] as List)
@@ -379,6 +388,15 @@ class NotesRepository {
       final revokedNoteIds =
           (data['revokedSharedNoteIds'] as List?)?.cast<String>() ?? [];
       final syncedAt = data['syncedAt'] as String;
+
+      // Log conflict resolution details
+      final conflicts = (data['conflicts'] as List?) ?? [];
+      final processedIds = (data['processedIds'] as List?) ?? [];
+      debugPrint('[SYNC] Server processed ${processedIds.length} IDs, ${serverChanges.length} server changes, ${conflicts.length} conflicts');
+      for (final conflict in conflicts) {
+        final c = conflict as Map<String, dynamic>;
+        debugPrint('[SYNC]   Conflict: noteId=${c['noteId']} resolution=${c['resolution']}');
+      }
 
       // 4. Process server changes with conflict resolution
       await _db.transaction(() async {
@@ -478,8 +496,16 @@ class NotesRepository {
 
       // 5. Save new sync timestamp
       await _storage.write(key: _lastSyncKey, value: syncedAt);
-    } catch (e) {
-      // Sync failed, will retry later
+      final pushedCount = localChanges.length;
+      final pulledCount = serverChanges.length;
+      final serverWinsCount = conflicts.where((c) => (c as Map<String, dynamic>)['resolution'] == 'server').length;
+      debugPrint('[SYNC] Sync completed successfully. New syncedAt=$syncedAt');
+      debugPrint('[SYNC] Pushed $pushedCount changes, pulled $pulledCount from server, processed ${processedIds.length} IDs, serverWins=$serverWinsCount');
+      return (pushed: pushedCount, pulled: pulledCount, serverWins: serverWinsCount);
+    } catch (e, stackTrace) {
+      debugPrint('[SYNC] ERROR: $e');
+      debugPrint('[SYNC] Stack: ${stackTrace.toString().split('\n').take(5).join('\n')}');
+      rethrow;
     }
   }
 
