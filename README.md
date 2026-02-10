@@ -55,7 +55,7 @@ Anchor focuses on speed, privacy, simplicity, and reliability across mobile and 
    ```yaml
    services:
      anchor:
-       image: ghcr.io/zhfahim/anchor:latest
+       image: ghcr.io/dwburks/anchor:latest
        container_name: anchor
        restart: unless-stopped
        ports:
