@@ -12,6 +12,7 @@ services:
       - PG_USER=anchor
       - PG_PASSWORD=password
       - PG_DATABASE=anchor
+      # - SYNC_DEBUG=true  # Enable verbose sync logging
     volumes:
       - anchor_data:/data
 
