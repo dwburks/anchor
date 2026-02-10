@@ -1,9 +1,9 @@
-import 'package:anchor/core/router/app_routes.dart';
+import 'package:helmpad/core/router/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:anchor/core/widgets/app_snackbar.dart';
+import 'package:helmpad/core/widgets/app_snackbar.dart';
 import 'auth_controller.dart';
 import '../data/repository/auth_repository.dart';
 

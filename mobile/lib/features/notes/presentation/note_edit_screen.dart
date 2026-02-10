@@ -6,16 +6,16 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:uuid/uuid.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:anchor/features/notes/domain/note.dart';
-import 'package:anchor/core/widgets/confirm_dialog.dart';
-import 'package:anchor/core/widgets/app_snackbar.dart';
-import 'package:anchor/core/widgets/rich_text_editor.dart';
-import 'package:anchor/features/settings/presentation/controllers/editor_preferences_controller.dart';
-import 'package:anchor/core/network/server_config_provider.dart';
-import 'package:anchor/features/tags/presentation/widgets/tag_selector.dart';
-import 'package:anchor/features/notes/presentation/widgets/note_background.dart';
-import 'package:anchor/features/notes/presentation/widgets/note_background_picker.dart';
-import 'package:anchor/features/notes/presentation/widgets/share_note_sheet.dart';
+import 'package:helmpad/features/notes/domain/note.dart';
+import 'package:helmpad/core/widgets/confirm_dialog.dart';
+import 'package:helmpad/core/widgets/app_snackbar.dart';
+import 'package:helmpad/core/widgets/rich_text_editor.dart';
+import 'package:helmpad/features/settings/presentation/controllers/editor_preferences_controller.dart';
+import 'package:helmpad/core/network/server_config_provider.dart';
+import 'package:helmpad/features/tags/presentation/widgets/tag_selector.dart';
+import 'package:helmpad/features/notes/presentation/widgets/note_background.dart';
+import 'package:helmpad/features/notes/presentation/widgets/note_background_picker.dart';
+import 'package:helmpad/features/notes/presentation/widgets/share_note_sheet.dart';
 import '../data/repository/notes_repository.dart';
 
 class NoteEditScreen extends ConsumerStatefulWidget {

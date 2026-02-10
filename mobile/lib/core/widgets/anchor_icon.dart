@@ -41,7 +41,7 @@ class AnchorIcon extends StatelessWidget {
             ],
           ),
           child: Image.asset(
-            'assets/icons/anchor_icon.png',
+            'assets/icons/helmpad_icon.png',
             width: iconSize,
             height: iconSize,
             fit: BoxFit.contain,

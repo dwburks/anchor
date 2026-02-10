@@ -1,76 +1,63 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/zhfahim/anchor/main/web/public/icons/anchor_icon.png" alt="Anchor" width="120" height="120">
+# Helmpad
 
-# Anchor
+**A self-hosted, offline-first note taking app — helm your thoughts.**
 
-**An offline first, self hostable note taking application**
-
-[![Version](https://img.shields.io/github/v/release/zhfahim/anchor?label=version)](https://github.com/zhfahim/anchor/releases)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker)](https://github.com/zhfahim/anchor)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker)](https://github.com/dwburks/anchor)
 
-Anchor focuses on speed, privacy, simplicity, and reliability across mobile and web. Notes are stored locally, editable offline, and synced across devices when online.
+Helmpad is a fork of [Anchor](https://github.com/zhfahim/anchor) focused on iOS availability and reliability improvements. Notes are stored locally, editable offline, and synced across devices when online.
 
 </div>
+
+
+## What's Different From Anchor?
+
+- **iOS App** — Available on the App Store (coming soon)
+- **Backup & Restore** — Export/import your notes and tags as JSON from the mobile app or API
+- **Sync Fixes** — Resolved UTC timestamp issues causing mobile-to-web sync failures
+- **Foreground Sync** — Periodic sync while the app is in use
+- **Debug Logging** — Gated behind `SYNC_DEBUG` environment variable
 
 
 ## Features
 
-- **Rich Text Editor** - Create and edit notes with powerful formatting (bold, italic, underline, headings, lists, checkboxes)
-- **Note Sharing** - Share notes with other users (viewer or editor)
-- **Tags System** - Organize notes with custom tags and colors
-- **Note Backgrounds** - Customize notes with solid colors and patterns
-- **Pin Notes** - Pin important notes for quick access
-- **Archive Notes** - Archive notes for later reference
-- **Search** - Search notes locally by title or content
-- **Trash** - Soft delete notes with recovery period
-- **Offline-First** - All edits work offline with local storage
-- **Automatic Sync** - Sync changes across devices when online
-- **Admin Panel** - User management, registration control, and system statistics
+- **Rich Text Editor** — Bold, italic, underline, headings, lists, checkboxes
+- **Note Sharing** — Share notes with other users (viewer or editor)
+- **Tags** — Organize notes with custom tags and colors
+- **Note Backgrounds** — Customize with solid colors and patterns
+- **Pin & Archive** — Pin important notes, archive for later
+- **Search** — Search locally by title or content
+- **Trash** — Soft delete with recovery
+- **Offline-First** — All edits work offline with local storage
+- **Automatic Sync** — Changes sync across devices when online
+- **Backup & Restore** — Export/import notes as JSON
+- **Admin Panel** — User management, registration control, system stats
 
 
-## Screenshots
+## Self-Hosting With Docker
 
-### Web App
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/zhfahim/anchor/main/.github/assets/screenshot-web-light.png" alt="Web Light Mode" width="45%">
-  <img src="https://raw.githubusercontent.com/zhfahim/anchor/main/.github/assets/screenshot-web-dark.png" alt="Web Dark Mode" width="45%">
-</div>
-
-### Mobile App
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/zhfahim/anchor/main/.github/assets/screenshot-mobile-light.jpg" alt="Mobile Light Mode" width="20%">
-  <img src="https://raw.githubusercontent.com/zhfahim/anchor/main/.github/assets/screenshot-mobile-dark.jpg" alt="Mobile Dark Mode" width="20%">
-</div>
-
-
-## Self Hosting With Docker
-
-### Option 1: Using Pre-built Image (Recommended)
+### Using Pre-built Image (Recommended)
 
 1. **Create a `docker-compose.yml` file:**
    ```yaml
    services:
-     anchor:
+     helmpad:
        image: ghcr.io/dwburks/anchor:latest
-       container_name: anchor
+       container_name: helmpad
        restart: unless-stopped
        ports:
          - "3000:3000"
        volumes:
-         - anchor_data:/data
+         - helmpad_data:/data
 
    volumes:
-     anchor_data:
+     helmpad_data:
    ```
 
 2. **(Optional) Configure environment:**
-   Add environment variables to the `environment` section. Most users can skip this step - defaults work out of the box.
 
-   Available options:
    | Variable | Default | Description |
    |----------|---------|-------------|
    | `JWT_SECRET` | (auto-generated) | Auth token secret (persisted in `/data`) |
@@ -79,7 +66,7 @@ Anchor focuses on speed, privacy, simplicity, and reliability across mobile and 
    | `PG_USER` | `anchor` | Postgres username |
    | `PG_PASSWORD` | `password` | Postgres password |
    | `PG_DATABASE` | `anchor` | Database name |
-   | `USER_SIGNUP` | (not set) | Sign up mode: `disabled`, `enabled`, or `review`. If not set, admins can control it via the admin panel |
+   | `USER_SIGNUP` | (not set) | `disabled`, `enabled`, or `review`. If not set, admins control it via admin panel |
 
 3. **Start the container:**
    ```bash
@@ -89,72 +76,46 @@ Anchor focuses on speed, privacy, simplicity, and reliability across mobile and 
 4. **Access the app:**
    Open http://localhost:3000
 
-### Option 2: Building from Source
+### Building From Source
 
-If you want to build from source or customize the image:
-
-1. **Clone the project:**
-   ```bash
-   git clone https://github.com/zhfahim/anchor.git
-   cd anchor
-   ```
-
-2. **Start the container:**
-   ```bash
-   docker compose up -d
-   ```
-
-   The `docker-compose.yml` file will build the image from source automatically.
+```bash
+git clone https://github.com/dwburks/anchor.git
+cd anchor
+docker compose up -d
+```
 
 
 ## Mobile App
 
-Download the Android mobile app.
+### iOS
 
-1. **Visit the releases page:**
-   Go to [GitHub Releases](https://github.com/zhfahim/anchor/releases).
+Coming soon to the App Store.
 
-2. **Download the latest release:**
-   Multiple APK files are available:
-   - **Universal APK** (`anchor-{version}.apk`) - Recommended for most users, works on all devices
-   - **Architecture-specific APKs** - Smaller file sizes for specific CPU architectures
+### Android
+
+Build from source using Flutter, or download APKs from the upstream [Anchor releases](https://github.com/zhfahim/anchor/releases).
 
 
-## Roadmap
+## Backup API
 
-Future planned features:
+Authenticated users can export and import their data:
 
-- OIDC authentication
-- Media attachments (images, PDFs, recordings)
-- Real-time collaboration
-- Reminders and notifications
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/backup/export` | Download your notes and tags as JSON |
+| `POST` | `/api/backup/import` | Upload JSON backup (non-destructive, skips existing items) |
+| `GET` | `/api/admin/backup` | Admin-only: full database dump (SQL) |
 
 
 ## Tech Stack
 
 - **Backend**: Nest.js, PostgreSQL, Prisma
-- **Mobile**: Flutter
+- **Mobile**: Flutter (iOS & Android)
 - **Web**: Next.js, TypeScript
-
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch:
-   ```bash
-   git checkout -b feature/your-feature
-   ```
-3. Make your changes
-4. Ensure builds pass:
-   - Web: `cd web && pnpm build`
-   - Server: `cd server && pnpm build`
-5. Commit changes:
-   ```bash
-   git commit -m "Describe your change"
-   ```
-6. Push and create a Pull Request
 
 
 ## License
 
-This project is licensed under the GNU Affero General Public License v3.0 (AGPL v3) - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
+
+Helmpad is a fork of [Anchor](https://github.com/zhfahim/anchor) by [@zhfahim](https://github.com/zhfahim).

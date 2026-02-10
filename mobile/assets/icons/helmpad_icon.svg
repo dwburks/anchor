@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Helm wheel - minimal geometric design -->
+  <!-- White icon on transparent background -->
+
+  <!-- Outer ring -->
+  <circle cx="256" cy="256" r="200" stroke="white" stroke-width="28" fill="none"/>
+
+  <!-- Inner ring (hub) -->
+  <circle cx="256" cy="256" r="50" stroke="white" stroke-width="22" fill="none"/>
+
+  <!-- Center dot -->
+  <circle cx="256" cy="256" r="12" fill="white"/>
+
+  <!-- 8 spokes -->
+  <!-- North -->
+  <line x1="256" y1="67" x2="256" y2="195" stroke="white" stroke-width="22" stroke-linecap="round"/>
+  <!-- South -->
+  <line x1="256" y1="317" x2="256" y2="445" stroke="white" stroke-width="22" stroke-linecap="round"/>
+  <!-- East -->
+  <line x1="317" y1="256" x2="445" y2="256" stroke="white" stroke-width="22" stroke-linecap="round"/>
+  <!-- West -->
+  <line x1="67" y1="256" x2="195" y2="256" stroke="white" stroke-width="22" stroke-linecap="round"/>
+  <!-- NE -->
+  <line x1="299" y1="213" x2="389" y2="123" stroke="white" stroke-width="22" stroke-linecap="round"/>
+  <!-- NW -->
+  <line x1="213" y1="213" x2="123" y2="123" stroke="white" stroke-width="22" stroke-linecap="round"/>
+  <!-- SE -->
+  <line x1="299" y1="299" x2="389" y2="389" stroke="white" stroke-width="22" stroke-linecap="round"/>
+  <!-- SW -->
+  <line x1="213" y1="299" x2="123" y2="389" stroke="white" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- 8 spoke handles (rounded knobs at outer ring) -->
+  <!-- North -->
+  <circle cx="256" cy="56" r="18" fill="white"/>
+  <!-- South -->
+  <circle cx="256" cy="456" r="18" fill="white"/>
+  <!-- East -->
+  <circle cx="456" cy="256" r="18" fill="white"/>
+  <!-- West -->
+  <circle cx="56" cy="256" r="18" fill="white"/>
+  <!-- NE -->
+  <circle cx="397" cy="115" r="18" fill="white"/>
+  <!-- NW -->
+  <circle cx="115" cy="115" r="18" fill="white"/>
+  <!-- SE -->
+  <circle cx="397" cy="397" r="18" fill="white"/>
+  <!-- SW -->
+  <circle cx="115" cy="397" r="18" fill="white"/>
+</svg>

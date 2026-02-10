@@ -1,4 +1,4 @@
-import 'package:anchor/core/router/app_routes.dart';
+import 'package:helmpad/core/router/app_routes.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,7 +100,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
         }
       } else {
         setState(() {
-          _error = 'Invalid server response. Is this an Anchor server?';
+          _error = 'Invalid server response. Is this a Helmpad server?';
         });
       }
     } catch (e) {
@@ -142,7 +142,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
         await notifier.setServerUrl(url);
       } else {
         setState(() {
-          _error = 'Invalid server response. Is this an Anchor server?';
+          _error = 'Invalid server response. Is this a Helmpad server?';
         });
       }
     } catch (e) {
@@ -210,7 +210,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
 
                   // Subtitle
                   Text(
-                    'Enter your Anchor server URL to get started',
+                    'Enter your server URL to get started',
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
@@ -320,7 +320,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Anchor is self-hosted. You need to run your own server to use this app.',
+                            'Helmpad is self-hosted. You need to run your own server to use this app.',
                             style: GoogleFonts.dmSans(
                               fontSize: 13,
                               color: theme.colorScheme.onSurface.withValues(

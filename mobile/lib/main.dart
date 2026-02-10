@@ -10,11 +10,11 @@ import 'features/settings/presentation/controllers/theme_preferences_controller.
 
 void main() async {
   await initializeApp();
-  runApp(const ProviderScope(child: AnchorApp()));
+  runApp(const ProviderScope(child: HelmpadApp()));
 }
 
-class AnchorApp extends ConsumerWidget {
-  const AnchorApp({super.key});
+class HelmpadApp extends ConsumerWidget {
+  const HelmpadApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,7 +25,7 @@ class AnchorApp extends ConsumerWidget {
     ref.watch(syncManagerProvider);
 
     return MaterialApp.router(
-      title: 'Anchor Notes',
+      title: 'Helmpad',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,

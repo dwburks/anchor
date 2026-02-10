@@ -98,7 +98,7 @@ final class SyncDebugInfoProvider
   }
 }
 
-String _$syncDebugInfoHash() => r'370aa8e8e54a2f5682bfdfd69cca48dcec23bc31';
+String _$syncDebugInfoHash() => r'2e28bfe0d6a0845c06a1283efb7225e2f84f47c3';
 
 abstract class _$SyncDebugInfo extends $Notifier<SyncDebugData> {
   SyncDebugData build();
@@ -143,7 +143,7 @@ final class NotesControllerProvider
   NotesController create() => NotesController();
 }
 
-String _$notesControllerHash() => r'5c2b54c087ff1f9602c3d7ed9d486e1a3f677b28';
+String _$notesControllerHash() => r'1dfda610790dd8fc8f2c127fc9e7d4c77d4958cc';
 
 abstract class _$NotesController extends $StreamNotifier<List<Note>> {
   Stream<List<Note>> build();

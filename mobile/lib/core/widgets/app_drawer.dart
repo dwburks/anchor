@@ -120,7 +120,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Anchor',
+                  'Helmpad',
                   style: GoogleFonts.playfairDisplay(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -128,7 +128,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                   ),
                 ),
                 Text(
-                  'Your thoughts, secured',
+                  'Helm your thoughts',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     fontSize: 11,

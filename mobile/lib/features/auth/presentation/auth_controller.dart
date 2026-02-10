@@ -1,5 +1,5 @@
-import 'package:anchor/features/notes/data/repository/notes_repository.dart';
-import 'package:anchor/features/tags/data/repository/tags_repository.dart';
+import 'package:helmpad/features/notes/data/repository/notes_repository.dart';
+import 'package:helmpad/features/tags/data/repository/tags_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../domain/user.dart';
 import '../data/repository/auth_repository.dart';

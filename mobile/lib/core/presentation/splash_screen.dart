@@ -45,7 +45,7 @@ class SplashScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   Text(
-                    'Anchor',
+                    'Helmpad',
                     style: GoogleFonts.playfairDisplay(
                       fontSize: 42,
                       fontWeight: FontWeight.bold,
@@ -55,7 +55,7 @@ class SplashScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Secure your thoughts',
+                    'Helm your thoughts',
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.6),

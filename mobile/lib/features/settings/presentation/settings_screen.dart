@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,10 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/network/server_config_provider.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../data/backup_service.dart';
 import '../data/server_info_provider.dart';
 import 'controllers/editor_preferences_controller.dart';
 import 'controllers/theme_preferences_controller.dart';
@@ -22,6 +26,8 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _appVersion = '';
+  bool _isExporting = false;
+  bool _isImporting = false;
 
   @override
   void initState() {
@@ -34,6 +40,72 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     setState(() {
       _appVersion = packageInfo.version;
     });
+  }
+
+  Future<void> _exportData() async {
+    setState(() => _isExporting = true);
+    try {
+      final backupService = ref.read(backupServiceProvider);
+      final filePath = await backupService.exportData();
+      if (mounted) {
+        await Share.shareXFiles([XFile(filePath)]);
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackbar.showError(
+          context,
+          message: 'Export failed. Please try again.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  Future<void> _importData() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+
+    if (result == null || result.files.single.path == null) return;
+
+    if (!mounted) return;
+
+    // Confirm before importing
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => ConfirmDialog(
+        icon: LucideIcons.upload,
+        title: 'Import Backup',
+        message:
+            'This will import notes and tags from the backup file. Existing items will be skipped (not overwritten).',
+        cancelText: 'Cancel',
+        confirmText: 'Import',
+        onConfirm: () async {},
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isImporting = true);
+    try {
+      final backupService = ref.read(backupServiceProvider);
+      final importResult =
+          await backupService.importData(result.files.single.path!);
+      if (mounted) {
+        AppSnackbar.showSuccess(context, message: importResult.summary);
+      }
+    } catch (e) {
+      if (mounted) {
+        final message = e.toString().contains('Invalid backup')
+            ? 'Invalid backup file.'
+            : 'Import failed. Please try again.';
+        AppSnackbar.showError(context, message: message);
+      }
+    } finally {
+      if (mounted) setState(() => _isImporting = false);
+    }
   }
 
   void _showLogoutDialog() {
@@ -206,6 +278,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                     const SizedBox(height: 32),
 
+                    // Data Section
+                    _buildSectionHeader(
+                      context,
+                      'Data',
+                      LucideIcons.database,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSettingsCard(
+                      context,
+                      child: Column(
+                        children: [
+                          _buildActionItem(
+                            context,
+                            title: 'Export Notes',
+                            subtitle: 'Download your notes and tags as JSON',
+                            icon: LucideIcons.download,
+                            isLoading: _isExporting,
+                            onTap: _isExporting || _isImporting
+                                ? () {}
+                                : _exportData,
+                          ),
+                          _buildDivider(context),
+                          _buildActionItem(
+                            context,
+                            title: 'Import Notes',
+                            subtitle: 'Restore from a backup file',
+                            icon: LucideIcons.upload,
+                            isLoading: _isImporting,
+                            onTap: _isExporting || _isImporting
+                                ? () {}
+                                : _importData,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
                     // Account Section
                     _buildSectionHeader(context, 'Account', LucideIcons.user),
                     const SizedBox(height: 12),
@@ -236,7 +346,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           _buildActionItem(
                             context,
                             title: 'Switch Server',
-                            subtitle: 'Connect to a different Anchor server',
+                            subtitle: 'Connect to a different server',
                             icon: LucideIcons.serverCog,
                             onTap: _showSwitchServerDialog,
                           ),
@@ -539,6 +649,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required IconData icon,
     required VoidCallback onTap,
     bool isDestructive = false,
+    bool isLoading = false,
   }) {
     final theme = Theme.of(context);
     final color = isDestructive
@@ -560,11 +671,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: color.withValues(alpha: 0.8),
-                ),
+                child: isLoading
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: color.withValues(alpha: 0.8),
+                        ),
+                      )
+                    : Icon(
+                        icon,
+                        size: 20,
+                        color: color.withValues(alpha: 0.8),
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(
