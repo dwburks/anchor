@@ -6,6 +6,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy';
 import { SettingsModule } from '../settings/settings.module';
+import { LoginThrottleService } from './login-throttle.service';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { SettingsModule } from '../settings/settings.module';
     SettingsModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, LoginThrottleService],
+  exports: [AuthService, LoginThrottleService],
 })
-export class AuthModule { }
+export class AuthModule {}
