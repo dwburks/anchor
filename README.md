@@ -136,10 +136,24 @@ Designed for multi-user self-hosting with strong data isolation:
 
 ## Roadmap
 
+### In Progress
 - [ ] Helmpad App Store release with custom icon
+- [ ] API token authentication for external integrations
+  - [ ] Per-user API tokens with auto-expiration
+  - [ ] Token usage tracking and audit logging
+  - [ ] Rate limiting for API token endpoints
+  - [ ] Optional scopes/permissions for tokens
+
+### Planned
 - [ ] Family sharing — shared spaces for household members
 - [ ] CORS origin whitelist configuration
-- [ ] Audit logging for admin actions
+
+### Completed
+- [x] Audit logging for admin actions (v0.9.0)
+- [x] Backup & restore as JSON (v0.9.0)
+- [x] Markdown export (v0.9.0)
+- [x] Note duplicate/sorting (v0.9.0)
+- [x] Brute force protection (v0.9.0)
 
 ## Tech Stack
 
