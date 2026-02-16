@@ -4,7 +4,9 @@
 Add per-user API tokens for external integrations (Homarr widgets, automation scripts, CI/CD) based on [upstream PR #49](https://github.com/ZhFahim/anchor/pull/49) with security enhancements.
 
 ## Status
-**Planned** - Not yet implemented. Security concerns identified, enhancements designed.
+**✅ Merged to Upstream** (2026-02-15) - PR #49 merged to main without security enhancements.
+
+**For Our Fork:** Base implementation available for merge. Security enhancements still planned.
 
 ## Why API Tokens?
 - **Long-lived authentication**: JWT tokens expire after 15 minutes
@@ -346,3 +348,122 @@ if (requiredScope && !user.apiTokenScopes?.includes(requiredScope)) {
 - **2026-02-14**: Feature identified in upstream PR #49
 - **2026-02-14**: Security analysis completed, minimal hardening approach chosen
 - **2026-02-14**: Deferred to roadmap instead of immediate implementation
+
+---
+
+## Upstream Implementation Review (2026-02-15)
+
+### What Was Merged
+
+PR #49 was merged to upstream main with the following implementation:
+
+#### Backend Changes:
+1. **Database Migration**: `20260212000100_add_user_api_token`
+   - Added `apiToken String? @unique` to User model
+
+2. **New Files**:
+   - `server/src/auth/auth.guard.ts` - Unified guard for JWT and API token auth
+   - `server/src/auth/token-resolver.service.ts` - Service to resolve user from either token type
+   - `server/src/auth/utils/generate-api-token.ts` - Token generation utility
+
+3. **Auth Endpoints** (auth.controller.ts):
+   - `GET /api/auth/api-token` - Get current API token (or null)
+   - `POST /api/auth/api-token/regenerate` - Regenerate token
+   - `DELETE /api/auth/api-token` - **Revoke token** (not in original PR!)
+
+4. **Auth Service Methods** (auth.service.ts):
+   - `getApiToken(userId)` - Returns existing token or null
+   - `regenerateApiToken(userId)` - Generates new token, invalidates old
+   - `revokeApiToken(userId)` - **New!** Sets token to null
+
+5. **Notes API Enhancement**:
+   - Added `limit` query parameter to `GET /api/notes`
+   - Clamped between 1-200, defaults to undefined (all notes)
+
+6. **Controller Updates**:
+   - Replaced `JwtAuthGuard` with `AuthGuard` on:
+     - NotesController
+     - NoteSharesController
+     - TagsController
+     - UsersController
+     - AdminController (some endpoints)
+
+#### Frontend Changes:
+1. **Web Settings Page** (web/app/(app)/settings/page.tsx):
+   - Added "API Token" section with:
+     - Token display (masked by default)
+     - Copy to clipboard button
+     - Regenerate button with confirmation dialog
+     - Revoke button with confirmation dialog
+   - Uses `useQuery` for token fetching
+   - Confirmation dialogs for destructive actions
+
+2. **API Client** (web/features/auth/api.ts):
+   - `getApiToken()` - Fetch current token
+   - `regenerateApiToken()` - Generate new token
+   - `revokeApiToken()` - Delete token
+
+### Key Differences from Original PR #49
+
+1. **Added Revoke Endpoint**: 
+   - Original PR only had get/regenerate
+   - Merged version adds `DELETE /api/auth/api-token`
+   - Allows users to disable API access entirely
+
+2. **Better UX**:
+   - Confirmation dialogs for regenerate/revoke
+   - Toast notifications for all actions
+   - Token visibility toggle
+
+3. **Cleaner Architecture**:
+   - Separate `TokenResolverService` for auth logic
+   - Generic `AuthGuard` (not "NotesAuthGuard")
+   - Applied to all resource controllers, not just notes
+
+### Security Assessment
+
+**Still Present** (unchanged from our analysis):
+- ❌ No token expiration
+- ❌ Plaintext storage in database
+- ❌ No audit logging
+- ❌ No rate limiting differences
+- ❌ No scopes/permissions
+
+**Improvements**:
+- ✅ Added revoke capability (manual expiration)
+- ✅ Confirmation dialogs (prevents accidental regeneration)
+
+### Implementation Quality
+
+**Positives**:
+- Clean separation of concerns (`TokenResolverService`)
+- Good error handling
+- Consistent with existing patterns
+- Comprehensive web UI
+
+**Areas for Enhancement** (our planned additions):
+- Token usage tracking (`apiTokenLastUsed`)
+- Automatic expiration after inactivity
+- Audit logging for token operations
+- Rate limiting for API token endpoints
+- Token hashing (HMAC approach)
+- Scope-based permissions
+
+### Migration Path for Our Fork
+
+**Option 1: Merge Base + Add Enhancements**
+1. Merge upstream API token implementation
+2. Add our planned security enhancements incrementally
+3. Update mobile app to show API token management
+
+**Option 2: Wait for Security Improvements**
+1. Keep tracking upstream
+2. Propose security enhancements via PR
+3. Merge once hardened
+
+**Option 3: Fork Implementation with Enhancements**
+1. Implement separately with all security features
+2. Keep upstream compatibility for easy updates
+
+**Recommendation**: Option 1 - Merge base, add minimal hardening (audit logging, usage tracking, auto-expiration)
+
