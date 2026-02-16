@@ -19,6 +19,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginThrottleService } from './login-throttle.service';
+import { AuditService } from '../audit/audit.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -35,6 +36,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly loginThrottleService: LoginThrottleService,
+    private readonly auditService: AuditService,
   ) {}
 
   @Get('registration-mode')
@@ -62,6 +64,11 @@ export class AuthController {
       const result = await this.authService.login(loginDto);
       // Clear failed attempts on success
       this.loginThrottleService.recordSuccess(throttleKey);
+      this.auditService.log({
+        action: 'login',
+        actor: loginDto.email,
+        ipAddress: ip,
+      });
       return result;
     } catch (error) {
       // Only record failure for auth errors (invalid credentials), not other errors like pending accounts
@@ -71,6 +78,11 @@ export class AuthController {
           (error as any)?.response?.message === 'Invalid credentials');
       if (isAuthError) {
         this.loginThrottleService.recordFailure(throttleKey);
+        this.auditService.log({
+          action: 'login_failed',
+          actor: loginDto.email,
+          ipAddress: ip,
+        });
       }
       throw error;
     }
@@ -87,6 +99,25 @@ export class AuthController {
   @Get('me')
   getMe(@CurrentUser() user: User) {
     return user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('api-token')
+  getApiToken(@CurrentUser() user: User) {
+    return this.authService.getApiToken(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('api-token')
+  revokeApiToken(@CurrentUser() user: User) {
+    return this.authService.revokeApiToken(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('api-token/regenerate')
+  regenerateApiToken(@CurrentUser() user: User) {
+    return this.authService.regenerateApiToken(user.id);
   }
 
   @UseGuards(JwtAuthGuard)

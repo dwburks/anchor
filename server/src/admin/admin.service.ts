@@ -21,20 +21,42 @@ export class AdminService {
   ) {}
 
   async getStats() {
-    const [totalUsers, totalNotes, totalTags] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.note.count({
-        where: {
-          state: { not: NoteState.deleted },
-        },
-      }),
-      this.prisma.tag.count(),
-    ]);
+    const [totalUsers, totalNotes, totalTags, userNoteCounts] =
+      await Promise.all([
+        this.prisma.user.count(),
+        this.prisma.note.count({
+          where: {
+            state: { not: NoteState.deleted },
+          },
+        }),
+        this.prisma.tag.count(),
+        this.prisma.user.findMany({
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            _count: {
+              select: {
+                notes: {
+                  where: { state: { not: NoteState.deleted } },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
+      ]);
 
     return {
       totalUsers,
       totalNotes,
       totalTags,
+      notesPerUser: userNoteCounts.map((u) => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        noteCount: u._count.notes,
+      })),
     };
   }
 

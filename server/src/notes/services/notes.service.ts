@@ -44,7 +44,24 @@ export class NotesService {
     return transformNote(note, userId);
   }
 
-  async findAll(userId: string, search?: string, tagId?: string) {
+  async findAll(
+    userId: string,
+    search?: string,
+    tagId?: string,
+    sortBy?: string,
+    sortOrder?: string,
+    limit?: number,
+  ) {
+    const normalizedLimit = clampLimit(limit);
+    // Build sort order: pinned always first, then user-specified sort
+    const validSortFields: Record<string, string> = {
+      updatedAt: 'updatedAt',
+      createdAt: 'createdAt',
+      title: 'title',
+    };
+    const sortField = validSortFields[sortBy || ''] || 'updatedAt';
+    const order: 'asc' | 'desc' = sortOrder === 'asc' ? 'asc' : 'desc';
+
     const notes = await this.prisma.note.findMany({
       where: {
         AND: [
@@ -94,7 +111,8 @@ export class NotesService {
         ...NOTE_INCLUDE_TAGS,
         ...NOTE_INCLUDE_SHARES,
       },
-      orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+      orderBy: [{ isPinned: 'desc' }, { [sortField]: order }],
+      take: normalizedLimit,
     });
 
     console.log(`[GET /api/notes] User=${userId} returning ${notes.length} notes`);
@@ -156,6 +174,41 @@ export class NotesService {
     });
 
     return transformNote(note, userId);
+  }
+
+  // Duplicate a note (creates a copy with new ID, owned by the requesting user)
+  async duplicate(userId: string, id: string) {
+    const access = await this.noteAccessService.hasNoteAccess(userId, id);
+    if (!access.hasAccess) {
+      throw new NotFoundException(ERROR_MESSAGES.NOTE_NOT_FOUND);
+    }
+
+    const original = await this.prisma.note.findUnique({
+      where: { id },
+      include: NOTE_INCLUDE_TAGS,
+    });
+
+    if (!original || original.state === NoteState.deleted) {
+      throw new NotFoundException(ERROR_MESSAGES.NOTE_NOT_FOUND);
+    }
+
+    const duplicate = await this.prisma.note.create({
+      data: {
+        title: `${original.title} (copy)`,
+        content: original.content,
+        isPinned: false,
+        isArchived: false,
+        background: original.background,
+        state: NoteState.active,
+        userId,
+        tags: original.tags?.length
+          ? { connect: original.tags.map((t) => ({ id: t.id })) }
+          : undefined,
+      },
+      include: NOTE_INCLUDE_TAGS,
+    });
+
+    return transformNote(duplicate, userId);
   }
 
   // Soft delete - moves note to trash (owner only)
@@ -481,3 +534,12 @@ export class NotesService {
     };
   }
 }
+
+const clampLimit = (limit?: number) => {
+  if (typeof limit !== 'number' || Number.isNaN(limit)) {
+    return undefined;
+  }
+
+  const normalized = Math.trunc(limit);
+  return Math.min(Math.max(normalized, 1), 200);
+};

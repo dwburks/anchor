@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { execSync } from 'child_process';
 import { PrismaService } from '../prisma/prisma.service';
+import { quillDeltaToMarkdown } from './delta-to-markdown';
 
 interface BackupTag {
   id: string;
@@ -220,6 +221,53 @@ export class BackupService {
     });
 
     return result;
+  }
+
+  async exportUserMarkdown(
+    userId: string,
+  ): Promise<{ filename: string; content: string }[]> {
+    const notes = await this.prisma.note.findMany({
+      where: {
+        userId,
+        state: { not: 'deleted' },
+      },
+      include: {
+        tags: { select: { name: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return notes.map((note) => {
+      const body = quillDeltaToMarkdown(note.content);
+      const tags = note.tags.map((t) => t.name);
+
+      // Build frontmatter
+      const frontmatter = [
+        '---',
+        `title: "${note.title.replace(/"/g, '\\"')}"`,
+        `created: ${note.createdAt.toISOString()}`,
+        `updated: ${note.updatedAt.toISOString()}`,
+        note.isPinned ? 'pinned: true' : null,
+        tags.length > 0 ? `tags: [${tags.join(', ')}]` : null,
+        '---',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      const content = `${frontmatter}\n\n# ${note.title}\n\n${body}\n`;
+
+      // Sanitize filename
+      const safeName = note.title
+        .replace(/[^a-zA-Z0-9\s-_]/g, '')
+        .replace(/\s+/g, '-')
+        .toLowerCase()
+        .slice(0, 100);
+
+      return {
+        filename: `${safeName || 'untitled'}.md`,
+        content,
+      };
+    });
   }
 
   async adminFullBackup(): Promise<Buffer> {

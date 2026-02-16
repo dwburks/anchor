@@ -11,10 +11,15 @@ export class LoginThrottleService {
   private readonly logger = new Logger(LoginThrottleService.name);
   private readonly failedAttempts = new Map<string, FailedAttempt>();
 
-  // Configuration
-  private readonly MAX_ATTEMPTS = 5;
-  private readonly LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
-  private readonly ATTEMPT_WINDOW_MS = 15 * 60 * 1000; // 15 minute window for counting attempts
+  // Configuration (overridable via environment variables)
+  private readonly MAX_ATTEMPTS = parseInt(
+    process.env.LOGIN_MAX_ATTEMPTS || '5',
+    10,
+  );
+  private readonly LOCKOUT_DURATION_MS =
+    parseInt(process.env.LOGIN_LOCKOUT_MINUTES || '15', 10) * 60 * 1000;
+  private readonly ATTEMPT_WINDOW_MS =
+    parseInt(process.env.LOGIN_ATTEMPT_WINDOW_MINUTES || '15', 10) * 60 * 1000;
   private readonly CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Clean up stale entries every 5 minutes
 
   constructor() {

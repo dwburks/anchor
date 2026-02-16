@@ -11,6 +11,7 @@ import { AdminModule } from './admin/admin.module';
 import { SettingsModule } from './settings/settings.module';
 import { UsersModule } from './users/users.module';
 import { BackupModule } from './backup/backup.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { BackupModule } from './backup/backup.module';
     SettingsModule,
     UsersModule,
     BackupModule,
+    AuditModule,
   ],
 })
 export class AppModule {}

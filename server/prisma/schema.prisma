@@ -30,6 +30,7 @@ model User {
   password          String
   name              String
   profileImage      String?
+  apiToken          String?        @unique
   isAdmin           Boolean        @default(false)
   status            UserStatus     @default(active)
   createdAt         DateTime       @default(now())
@@ -95,6 +96,19 @@ model NoteShare {
   @@unique([noteId, sharedWithUserId])
   @@index([noteId])
   @@index([sharedWithUserId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String   // e.g. "login", "login_failed", "user_created", "user_deleted", etc.
+  actor     String?  // email or identifier of who performed the action
+  target    String?  // email or identifier of the target (e.g. user being modified)
+  details   String?  // additional context (JSON string)
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([createdAt])
 }
 
 model RefreshToken {

@@ -10,16 +10,21 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { AuditService } from '../audit/audit.service';
 import { AdminGuard } from './admin.guard';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateRegistrationModeDto } from './dto/update-registration-mode.dto';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('api/admin')
 @UseGuards(AdminGuard)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Get('stats')
   getStats() {
@@ -32,8 +37,17 @@ export class AdminController {
   }
 
   @Patch('settings/registration')
-  updateRegistrationMode(@Body() dto: UpdateRegistrationModeDto) {
-    return this.adminService.updateRegistrationMode(dto.mode);
+  async updateRegistrationMode(
+    @CurrentUser('email') adminEmail: string,
+    @Body() dto: UpdateRegistrationModeDto,
+  ) {
+    const result = await this.adminService.updateRegistrationMode(dto.mode);
+    this.auditService.log({
+      action: 'registration_mode_changed',
+      actor: adminEmail,
+      details: { mode: dto.mode },
+    });
+    return result;
   }
 
   @Get('users')
@@ -50,35 +64,107 @@ export class AdminController {
   }
 
   @Post('users')
-  createUser(@Body() createUserDto: CreateUserDto) {
-    return this.adminService.createUser(createUserDto);
+  async createUser(
+    @CurrentUser('email') adminEmail: string,
+    @Body() createUserDto: CreateUserDto,
+  ) {
+    const result = await this.adminService.createUser(createUserDto);
+    this.auditService.log({
+      action: 'user_created',
+      actor: adminEmail,
+      target: createUserDto.email,
+    });
+    return result;
   }
 
   @Patch('users/:id')
-  updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.adminService.updateUser(id, updateUserDto);
+  async updateUser(
+    @CurrentUser('email') adminEmail: string,
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    const result = await this.adminService.updateUser(id, updateUserDto);
+    this.auditService.log({
+      action: 'user_updated',
+      actor: adminEmail,
+      target: id,
+      details: { ...updateUserDto },
+    });
+    return result;
   }
 
   @Delete('users/:id')
-  deleteUser(@Param('id') id: string) {
-    return this.adminService.deleteUser(id);
+  async deleteUser(
+    @CurrentUser('email') adminEmail: string,
+    @Param('id') id: string,
+  ) {
+    const result = await this.adminService.deleteUser(id);
+    this.auditService.log({
+      action: 'user_deleted',
+      actor: adminEmail,
+      target: id,
+    });
+    return result;
   }
 
   @Post('users/:id/reset-password')
-  resetPassword(
+  async resetPassword(
+    @CurrentUser('email') adminEmail: string,
     @Param('id') id: string,
     @Body() resetPasswordDto: ResetPasswordDto,
   ) {
-    return this.adminService.resetPassword(id, resetPasswordDto.newPassword);
+    const result = await this.adminService.resetPassword(
+      id,
+      resetPasswordDto.newPassword,
+    );
+    this.auditService.log({
+      action: 'password_reset',
+      actor: adminEmail,
+      target: id,
+    });
+    return result;
   }
 
   @Post('users/:id/approve')
-  approveUser(@Param('id') id: string) {
-    return this.adminService.approveUser(id);
+  async approveUser(
+    @CurrentUser('email') adminEmail: string,
+    @Param('id') id: string,
+  ) {
+    const result = await this.adminService.approveUser(id);
+    this.auditService.log({
+      action: 'user_approved',
+      actor: adminEmail,
+      target: id,
+    });
+    return result;
   }
 
   @Post('users/:id/reject')
-  rejectUser(@Param('id') id: string) {
-    return this.adminService.rejectUser(id);
+  async rejectUser(
+    @CurrentUser('email') adminEmail: string,
+    @Param('id') id: string,
+  ) {
+    const result = await this.adminService.rejectUser(id);
+    this.auditService.log({
+      action: 'user_rejected',
+      actor: adminEmail,
+      target: id,
+    });
+    return result;
+  }
+
+  @Get('audit-logs')
+  getAuditLogs(
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+    @Query('action') action?: string,
+    @Query('actor') actor?: string,
+  ) {
+    return this.auditService.findAll({
+      skip: skip ? parseInt(skip, 10) : 0,
+      take: take ? parseInt(take, 10) : 50,
+      action,
+      actor,
+    });
   }
 }

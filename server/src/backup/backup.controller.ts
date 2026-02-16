@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Param,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -11,6 +12,7 @@ import {
   MaxFileSizeValidator,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import archiver = require('archiver');
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../admin/admin.guard';
@@ -66,6 +68,39 @@ export class BackupController {
     }
 
     return this.backupService.importUserData(userId, data);
+  }
+
+  @Get('backup/export/markdown')
+  @UseGuards(JwtAuthGuard)
+  async exportMarkdownZip(
+    @CurrentUser('id') userId: string,
+    @Res() res: Response,
+  ) {
+    const files = await this.backupService.exportUserMarkdown(userId);
+    const date = new Date().toISOString().split('T')[0];
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="anchor-markdown-${date}.zip"`,
+    );
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    archive.pipe(res);
+
+    // Deduplicate filenames
+    const usedNames = new Map<string, number>();
+    for (const file of files) {
+      let name = file.filename;
+      const count = usedNames.get(name) || 0;
+      if (count > 0) {
+        name = name.replace('.md', `-${count}.md`);
+      }
+      usedNames.set(file.filename, count + 1);
+      archive.append(file.content, { name });
+    }
+
+    await archive.finalize();
   }
 
   // ── Admin endpoints ─────────────────────────────────────

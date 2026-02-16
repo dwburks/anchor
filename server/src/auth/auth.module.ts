@@ -7,6 +7,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy';
 import { SettingsModule } from '../settings/settings.module';
 import { LoginThrottleService } from './login-throttle.service';
+import { AuthGuard } from './auth.guard';
+import { TokenResolverService } from './token-resolver.service';
 
 @Module({
   imports: [
@@ -22,7 +24,7 @@ import { LoginThrottleService } from './login-throttle.service';
     SettingsModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LoginThrottleService],
-  exports: [AuthService, LoginThrottleService],
+  providers: [AuthService, JwtStrategy, LoginThrottleService, AuthGuard, TokenResolverService],
+  exports: [AuthService, LoginThrottleService, AuthGuard],
 })
 export class AuthModule {}

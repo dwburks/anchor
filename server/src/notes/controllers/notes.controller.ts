@@ -14,11 +14,11 @@ import { CreateNoteDto } from '../dto/create-note.dto';
 import { UpdateNoteDto } from '../dto/update-note.dto';
 import { SyncNotesDto } from '../dto/sync-notes.dto';
 import { BulkActionDto } from '../dto/bulk-action.dto';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { AuthGuard } from '../../auth/auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 
 @Controller('api/notes')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AuthGuard)
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
 
@@ -40,8 +40,11 @@ export class NotesController {
     @CurrentUser('id') userId: string,
     @Query('search') search?: string,
     @Query('tagId') tagId?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.notesService.findAll(userId, search, tagId);
+    return this.notesService.findAll(userId, search, tagId, sortBy, sortOrder, parseLimit(limit));
   }
 
   @Get('trash')
@@ -57,6 +60,11 @@ export class NotesController {
   @Get(':id')
   findOne(@CurrentUser('id') userId: string, @Param('id') id: string) {
     return this.notesService.findOne(userId, id);
+  }
+
+  @Post(':id/duplicate')
+  duplicate(@CurrentUser('id') userId: string, @Param('id') id: string) {
+    return this.notesService.duplicate(userId, id);
   }
 
   @Patch(':id')
@@ -99,3 +107,12 @@ export class NotesController {
     return this.notesService.bulkArchive(userId, bulkActionDto.noteIds);
   }
 }
+
+const parseLimit = (limit?: string) => {
+  if (!limit) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(limit, 10);
+  return Number.isNaN(parsed) ? undefined : parsed;
+};
